@@ -1,4 +1,45 @@
-;;; format-next-proc-sql-block.el --- Auto-format embedded SQL in Pro*C files -*- lexical-binding: t -*-
+;;; Usage
+;;;
+;;; - Select an embedded SQL region inside EXEC SQL ...;.
+;;; - Run M-x exec-sql-format.
+;;; 
+;;; It will:
+;;; 
+;;; Send the region to sqlformat.
+;;; 
+;;; Capture the formatted result.
+;;; 
+;;; Replace the original region with the formatted SQL.
+;;; 
+;;; Optional: Bind to a Key
+;;; To bind it to a convenient key (e.g. C-c C-f in c-mode):
+;
+; (add-hook 'c-mode-hook
+;           (lambda ()
+;             (local-set-key (kbd "C-c C-f") #'exec-sql-format)))
+
+(defun exec-sql-format (start end)
+  "Format embedded SQL in a selected region using sqlformat."
+  (interactive "r")
+  (let ((formatted-sql-buffer "*Formatted SQL*"))
+    (if (use-region-p)
+        (progn
+          (shell-command-on-region
+           start end
+           "sqlformat -r -k upper -s -"  ; change options here if needed
+           formatted-sql-buffer
+           nil ; do not replace region automatically
+           "*SQL Format Errors*" t)
+          (with-current-buffer formatted-sql-buffer
+            (let ((formatted (buffer-string)))
+              (delete-region start end)
+              (goto-char start)
+              (insert formatted)))
+          (kill-buffer formatted-sql-buffer))
+      (message "No region selected."))))
+
+
+;;; exec-sql-format-next-block.el --- Auto-format embedded SQL in Pro*C files -*- lexical-binding: t -*-
 
 ;;; Commentary:
 ;;
@@ -20,12 +61,12 @@
 ;; 🧪 Usage:
 ;; 1. Open a `.pc` Pro*C file.
 ;; 2. Place cursor anywhere before or inside an EXEC SQL block.
-;; 3. Run: M-x format-next-proc-sql-block
+;; 3. Run: M-x exec-sql-format-next-block
 ;;
 ;; 🎯 Optional Keybinding:
 ;; (add-hook 'c-mode-hook
 ;;   (lambda ()
-;;     (local-set-key (kbd "C-c C-e") #'format-next-proc-sql-block)))
+;;     (local-set-key (kbd "C-c C-e") #'exec-sql-format-next-block)))
 ;;
 ;; ⚠️ Limitations:
 ;; - Assumes one SQL block per EXEC SQL.
@@ -34,7 +75,7 @@
 
 ;;; Code:
 
-(defun proc--skip-ws-and-comments ()
+(defun exec-sql-skip-ws-and-comments ()
   "Move point forward past whitespace and C/SQL comments."
   (while (progn
            (skip-chars-forward " \t\n")
@@ -43,7 +84,7 @@
             ((looking-at "--") (search-forward "\n" nil 'move) t)
             (t nil)))))
 
-(defun proc--find-semicolon ()
+(defun exec-sql-find-semicolon ()
   "Return position of next semicolon outside comments." 
   (catch 'found
     (while (search-forward ";" nil t)
@@ -57,7 +98,7 @@
                             (not (or (nth 3 pps) (nth 4 pps))))))))
           (throw 'found pos))))))
 
-(defun format-next-proc-sql-block ()
+(defun exec-sql-format-next-block ()
   "Find and format the next EXEC SQL block using sqlformat.
 Supports both 'EXEC SQL ... ;' and 'EXEC SQL ... END-EXEC;' forms."
   (interactive)
@@ -71,7 +112,7 @@ Supports both 'EXEC SQL ... ;' and 'EXEC SQL ... END-EXEC;' forms."
             (setq start (point))
             (let* ((case-fold-search t)
                    (next-token (save-excursion
-                                 (proc--skip-ws-and-comments)
+                                 (exec-sql-skip-ws-and-comments)
                                  (buffer-substring-no-properties
                                   (point)
                                   (progn (skip-chars-forward "A-Za-z_" )
@@ -80,7 +121,7 @@ Supports both 'EXEC SQL ... ;' and 'EXEC SQL ... END-EXEC;' forms."
               (cond
                ((string= upper-token "INCLUDE")
                 (let ((semi (save-excursion (goto-char start)
-                                            (proc--find-semicolon))))
+                                            (exec-sql-find-semicolon))))
                   (when semi
                     (goto-char (1+ semi))
                     (message "Skipped EXEC SQL INCLUDE directive.")))
@@ -91,7 +132,7 @@ Supports both 'EXEC SQL ... ;' and 'EXEC SQL ... END-EXEC;' forms."
                (t
                 (setq end (save-excursion
                             (goto-char start)
-                            (proc--find-semicolon))))))
+                            (exec-sql-find-semicolon))))))
             (if (not skip-format)
                 (if (and start end)
                     (let* ((sql-original (buffer-substring-no-properties start end))
@@ -116,3 +157,73 @@ Supports both 'EXEC SQL ... ;' and 'EXEC SQL ... END-EXEC;' forms."
                       (message "Formatted embedded SQL."))
                   (message "Could not find terminating ';' or END-EXEC; for EXEC SQL block."))))
         (message "No EXEC SQL block found.")))))
+
+
+;;; exec-sql-format-all-blocks.el --- Format all embedded SQL blocks in Pro*C files -*- lexical-binding: t -*-
+
+;;; Commentary:
+;;
+;; This function formats **all** embedded SQL blocks in a Pro*C `.pc` source file.
+;; It wraps and repeatedly calls `exec-sql-format-next-block`, which handles:
+;;
+;;   - EXEC SQL ... ;
+;;   - EXEC SQL ... END-EXEC;
+;;
+;; The SQL content inside each block is:
+;;   - Extracted (excluding EXEC SQL and terminator)
+;;   - Sent to the external SQL formatter `sqlformat`
+;;   - Reinserted into the buffer with the formatted version
+;;
+;; 📦 Requirements:
+;; - Install the Python `sqlparse` package:
+;;     pip install sqlparse
+;; - Ensure `sqlformat` is on your PATH
+;;
+;; 🧪 Usage:
+;; 1. Open a `.pc` Pro*C file.
+;; 2. Run: M-x exec-sql-format-all-blocks
+;;    → All embedded SQL blocks will be formatted.
+;;
+;; 🔁 What It Does:
+;; - Moves from the top of the buffer.
+;; - Formats each EXEC SQL block in turn.
+;; - Stops when no further blocks are found.
+;;
+;; 🎯 Optional Keybinding:
+;; (add-hook 'c-mode-hook
+;;   (lambda ()
+;;     (local-set-key (kbd "C-c C-a") #'exec-sql-format-all-blocks)))
+;;
+;; 💡 Notes:
+;; - Relies on `exec-sql-format-next-block` for actual formatting.
+;; - Safe to re-run; formatting is idempotent.
+;; - Does not modify EXEC SQL wrappers—only the SQL inside.
+;;
+;;; Code:
+
+(defun exec-sql-format-all-blocks ()
+  "Format all embedded EXEC SQL blocks in the current buffer using sqlformat.
+This function repeatedly calls `exec-sql-format-next-block` until no more
+SQL blocks are found. It supports both 'EXEC SQL ... ;' and
+'EXEC SQL ... END-EXEC;' formats."
+  (interactive)
+  (save-excursion
+    (goto-char (point-min))
+    (let ((count 0)
+          (keep-going t)
+          (last-point -1))
+      (while keep-going
+        (setq keep-going
+              (condition-case err
+                  (progn
+                    (let ((initial-point (point)))
+                      (exec-sql-format-next-block)
+                      ;; If point did not advance, assume no more blocks
+                      (if (= (point) initial-point)
+                          nil
+                        (cl-incf count)
+                        t)))
+                (error
+                 (message "Error during formatting: %s" err)
+                 nil))))
+      (message "Formatted %d embedded SQL block(s)." count))))
