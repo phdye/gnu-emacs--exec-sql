@@ -1,0 +1,9 @@
+# Compiled Elisp files
+*.elc
+
+# Backup files
+*~
+\#*\#
+
+# Test artifacts
+*.log

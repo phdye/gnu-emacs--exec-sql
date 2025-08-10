@@ -414,19 +414,23 @@ in the registry marked with `:error' are skipped."
   "Return number of remaining EXEC SQL statements after point.
 
 When a region is active, only the portion from point to the end of the
-region is considered.  Internally uses `exec-sql-goto-next' to traverse
-statements.  Point is restored to its original location after counting.
-REGISTRY defaults to `exec-sql-parser-registry'."
+region is considered.  Statements are discovered by repeatedly calling
+`exec-sql-goto-next', ensuring multi-line constructs and comment
+handling follow the configured REGISTRY.  Point is restored to its
+original location after counting.  REGISTRY defaults to
+`exec-sql-parser-registry'."
   (interactive)
-  (let ((count 0))
+  (let ((registry (or registry exec-sql-parser-registry))
+        (count 0))
     (save-excursion
       (save-restriction
         (when (use-region-p)
           (narrow-to-region (point) (region-end)))
-        (goto-char (point))
-        (while (re-search-forward "^\\s-*EXEC SQL\\b.*;" nil t)
-          (setq count (1+ count))
-          (forward-line 1))))
+        ;; `exec-sql-goto-next' advances one line before searching, so
+        ;; step back to include a block beginning on the current line.
+        (forward-line -1)
+        (while (exec-sql-goto-next registry)
+          (setq count (1+ count)))))
     (when (called-interactively-p 'interactive)
       (message "%d" count))
     count))
