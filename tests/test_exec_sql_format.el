@@ -1,8 +1,15 @@
 (require 'ert)
+(require 'cl-lib)
 (add-to-list 'load-path (expand-file-name ".." (file-name-directory load-file-name)))
 
 (let ((test-dir (expand-file-name "exec-sql-format" (file-name-directory load-file-name))))
   (dolist (test-file (directory-files test-dir t "\\.el$"))
-    (load test-file)))
+    (load test-file nil 'nomessage)))
 
-(ert-run-tests-batch-and-exit)
+(cl-letf* ((orig (symbol-function 'message))
+           ((symbol-function 'message)
+            (lambda (fmt &rest args)
+              (let ((text (apply #'format fmt args)))
+                (unless (string-prefix-p "Running " text)
+                  (apply orig fmt args))))))
+  (ert-run-tests-batch-and-exit))
