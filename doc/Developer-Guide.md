@@ -2,15 +2,6 @@
 
 Welcome to the developer documentation for **exec-sql**. This guide describes how to set up a working environment, run tests, and contribute code.
 
-## Environment
-The project targets the following runtime versions:
-
-- Python 3.2.5
-- Cygwin 1.7.29
-- Oracle 12c
-
-Please ensure changes remain compatible with these versions when possible.
-
 ## Getting Started
 1. Clone the repository and add it to your Emacs `load-path`.
 2. Install [sqlparse](https://pypi.org/project/sqlparse/) which provides the `sqlformat` CLI used for formatting SQL.

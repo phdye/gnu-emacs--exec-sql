@@ -8,14 +8,6 @@ Thanks for your interest in contributing to **exec-sql**!
 3. Run the test suite with `make test` before submitting a change.
 4. Open a pull request with a clear description of your changes.
 
-## Environment
-The project targets the following runtime environment:
-- Python 3.2.5
-- Cygwin 1.7.29
-- Oracle 12c
-
-Please make a best effort to keep contributions compatible with these versions.
-
 ## Coding Style
 - Prefer descriptive names and docstrings for all public functions.
 - Use spaces for indentation.

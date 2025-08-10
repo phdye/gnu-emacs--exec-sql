@@ -33,6 +33,3 @@ Contributions are welcome!  Please read [CONTRIBUTING.md](CONTRIBUTING.md) for d
 
 ## License
 This project is licensed under the terms of the GNU General Public License v3.0 or later.  See [LICENSE](LICENSE) for the full text.
-
----
-This project targets compatibility with Python 3.2.5, Cygwin 1.7.29 and Oracle 12c.

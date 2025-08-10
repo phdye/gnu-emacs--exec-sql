@@ -43,4 +43,3 @@ To enable SQL highlighting within C buffers using `mmm-mode`:
 ## Troubleshooting
 - Ensure `sqlformat` is installed and callable.
 - Formatting skips blocks such as `EXEC SQL INCLUDE` directives.
-- The library is developed against Python 3.2.5, Cygwin 1.7.29 and Oracle 12c.
