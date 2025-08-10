@@ -1,0 +1,26 @@
+#include <stdio.h>
+
+int main() {
+    EXEC SQL SELECT * FROM dual;
+    EXEC SQL include sqlca;
+    EXEC SQL
+      INSERT INTO emp(id, name)
+      VALUES (1, 'Alice')
+    ;
+    EXEC SQL EXECUTE IMMEDIATE 'DELETE FROM emp';
+    EXEC SQL EXECUTE
+      BEGIN
+        NULL;
+      END;
+    END-EXEC;
+    EXEC SQL BEGIN DECLARE SECTION;
+    int id;
+    EXEC SQL END DECLARE SECTION;
+    /* This is a comment with EXEC SQL SELECT 1 FROM dual; */
+    EXEC SQL
+      UPDATE emp
+      SET name = 'Bob'
+      WHERE id = 1
+    ;
+    return 0;
+}
