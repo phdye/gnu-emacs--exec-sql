@@ -20,4 +20,6 @@
 (setq-default mmm-never-modes
                (append '(ediff-mode) '(text-mode) mmm-never-modes))
 
+(provide 'exec-sql-mmm)
+
 ;;------------------------------------------------------------------------------

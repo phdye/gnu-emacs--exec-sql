@@ -40,3 +40,7 @@
         (local-set-key (kbd "M-f C-a") #'exec-sql-format-all-blocks)))
 
 ;;;
+
+(provide 'exec-sql-init)
+
+;;;
