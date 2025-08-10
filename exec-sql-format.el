@@ -36,11 +36,11 @@
            formatted-sql-buffer
            nil ; do not replace region automatically
            "*SQL Format Errors*" t)
-          (with-current-buffer formatted-sql-buffer
-            (let ((formatted (buffer-string)))
-              (delete-region start end)
-              (goto-char start)
-              (insert formatted)))
+          (let ((formatted (with-current-buffer formatted-sql-buffer
+                              (buffer-string))))
+            (delete-region start end)
+            (goto-char start)
+            (insert formatted))
           (kill-buffer formatted-sql-buffer))
       (message "No region selected."))))
 
