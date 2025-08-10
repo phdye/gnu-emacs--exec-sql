@@ -14,7 +14,8 @@
                  (let ((text (buffer-substring (min start end) (max start end))))
                    (with-current-buffer (get-buffer-create output-buffer)
                      (erase-buffer)
-                     (insert (upcase text)))))))
+                     (insert (upcase text))))))
+              ((symbol-function 'message) (lambda (&rest _) nil)))
       (exec-sql-format-all-blocks)
       (goto-char (point-min))
       ;; Due to parser limitations only initial declarations are formatted.
