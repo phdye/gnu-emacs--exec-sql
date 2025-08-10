@@ -18,6 +18,10 @@
 ;           (lambda ()
 ;             (local-set-key (kbd "C-c C-f") #'exec-sql-format)))
 
+(require 'cl-lib)
+(require 'subr-x)
+(require 'exec-sql-parser)
+
 (defun exec-sql-format (start end)
   "Format embedded SQL in a selected region using sqlformat."
   (interactive "r")
@@ -75,88 +79,53 @@
 
 ;;; Code:
 
-(defun exec-sql-skip-ws-and-comments ()
-  "Move point forward past whitespace and C/SQL comments."
-  (while (progn
-           (skip-chars-forward " \t\n")
-           (cond
-            ((looking-at "/\\*") (forward-comment 1) t)
-            ((looking-at "--") (search-forward "\n" nil 'move) t)
-            (t nil)))))
-
-(defun exec-sql-find-semicolon ()
-  "Return position of next semicolon outside comments." 
-  (catch 'found
-    (while (search-forward ";" nil t)
-      (let ((pos (1- (point))))
-        (unless (or (nth 4 (syntax-ppss pos))
-                    (save-excursion
-                      (goto-char pos)
-                      (let ((line-start (line-beginning-position)))
-                        (when (search-backward "--" line-start t)
-                          (let ((pps (syntax-ppss)))
-                            (not (or (nth 3 pps) (nth 4 pps))))))))
-          (throw 'found pos))))))
 
 (defun exec-sql-format-next-block ()
   "Find and format the next EXEC SQL block using sqlformat.
-Supports both 'EXEC SQL ... ;' and 'EXEC SQL ... END-EXEC;' forms."
+Supports both 'EXEC SQL ... ;' and 'EXEC SQL ... END-EXEC;' forms.
+Block location is determined by `exec-sql-goto-next` from
+`exec-sql-parser`.  Only the SQL content inside the wrappers is
+formatted."
   (interactive)
-  (let ((exec-sql-regexp "EXEC[ \t\n]+SQL[ \t\n]+")
-        (end-block-regexp "END-EXEC[ \t]*;[ \t]*\\(?:--.*\\)?[ \t]*\n?")
-        start end skip-format)
-    (save-excursion
-      ;; Find EXEC SQL start
-      (if (re-search-forward exec-sql-regexp nil t)
-          (progn
-            (setq start (point))
-            (let* ((case-fold-search t)
-                   (next-token (save-excursion
-                                 (exec-sql-skip-ws-and-comments)
-                                 (buffer-substring-no-properties
-                                  (point)
-                                  (progn (skip-chars-forward "A-Za-z_" )
-                                         (point)))))
-                   (upper-token (upcase next-token)))
-              (cond
-               ((string= upper-token "INCLUDE")
-                (let ((semi (save-excursion (goto-char start)
-                                            (exec-sql-find-semicolon))))
-                  (when semi
-                    (goto-char (1+ semi))
-                    (message "Skipped EXEC SQL INCLUDE directive.")))
-                 (setq skip-format t))
-               ((member upper-token '("DECLARE" "BEGIN"))
-                (when (re-search-forward end-block-regexp nil t)
-                  (setq end (match-beginning 0))))
-               (t
-                (setq end (save-excursion
-                            (goto-char start)
-                            (exec-sql-find-semicolon))))))
-            (if (not skip-format)
-                (if (and start end)
-                    (let* ((sql-original (buffer-substring-no-properties start end))
-                           (formatted-sql-buffer "*Formatted SQL*"))
-
-                      ;; Format with sqlformat
-                      (with-temp-buffer
-                        (insert sql-original)
-                        (shell-command-on-region
-                         (point-min) (point-max)
-                         "sqlformat -r -k upper -s -"
-                         formatted-sql-buffer
-                         nil "*SQL Format Errors*" t))
-
-                      ;; Replace original SQL with formatted
-                      (with-current-buffer formatted-sql-buffer
-                        (let ((formatted-sql (string-trim (buffer-string))))
-                          (delete-region start end)
-                          (goto-char start)
-                          (insert formatted-sql)))
-                      (kill-buffer formatted-sql-buffer)
-                      (message "Formatted embedded SQL."))
-                  (message "Could not find terminating ';' or END-EXEC; for EXEC SQL block."))))
-        (message "No EXEC SQL block found.")))))
+  (let ((info (exec-sql-goto-next)))
+    (if (null info)
+        (message "No EXEC SQL block found.")
+      (let* ((block-start (+ (point-min) (plist-get info :offset)))
+             (block-end   (+ block-start (plist-get info :length)))
+             (block-text  (buffer-substring-no-properties block-start block-end)))
+        (if (string-match "^\\s-*EXEC\\s-+SQL\\s+INCLUDE\\b" block-text)
+            (progn
+              (goto-char block-end)
+              (message "Skipped EXEC SQL INCLUDE directive."))
+          (let* ((case-fold-search t)
+                 (_ (string-match "^\\s-*EXEC\\s-+SQL\\s+" block-text))
+                 (sql-start (+ block-start (match-end 0)))
+                 (sql-end
+                  (cond
+                   ((string-match "\\(END-EXEC;\\)\\s-*\\(?:--.*\\)?\\s-*$" block-text)
+                    (+ block-start (match-beginning 1)))
+                   ((string-match "\\(;\\)\\s-*\\(?:--.*\\)?\\s-*$" block-text)
+                    (+ block-start (match-beginning 1)))
+                   (t block-end)))
+                 (sql-original (buffer-substring-no-properties sql-start sql-end))
+                 (formatted-sql-buffer "*Formatted SQL*"))
+            (with-temp-buffer
+              (insert sql-original)
+              (shell-command-on-region
+               (point-min) (point-max)
+               "sqlformat -r -k upper -s -"
+               formatted-sql-buffer
+               nil "*SQL Format Errors*" t))
+            (let* ((formatted-sql (with-current-buffer formatted-sql-buffer
+                                   (string-trim (buffer-string))))
+                   (orig-len (- sql-end sql-start)))
+              (delete-region sql-start sql-end)
+              (goto-char sql-start)
+              (insert formatted-sql)
+              (setq block-end (+ block-end (- (length formatted-sql) orig-len))))
+            (kill-buffer formatted-sql-buffer)
+            (goto-char block-end)
+            (message "Formatted embedded SQL.")))))))
 
 
 ;;; exec-sql-format-all-blocks.el --- Format all embedded SQL blocks in Pro*C files -*- lexical-binding: t -*-
@@ -227,3 +196,5 @@ SQL blocks are found. It supports both 'EXEC SQL ... ;' and
                  (message "Error during formatting: %s" err)
                  nil))))
       (message "Formatted %d embedded SQL block(s)." count))))
+
+(provide 'exec-sql-format)
