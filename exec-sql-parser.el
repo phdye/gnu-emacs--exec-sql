@@ -298,9 +298,91 @@ found, nil is returned.  REGISTRY defaults to
                              (current-column)))
               :end (cons (line-number-at-pos (1- end))
                          (save-excursion
-                           (goto-char (1- end))
+                          (goto-char (1- end))
                            (current-column))))))))
     ))
+
+(defun exec-sql-get-prior (&optional registry)
+  "Return metadata for the prior EXEC SQL statement before point.
+
+The return value is a plist containing the keys `:type',
+`:offset', `:length', `:start' and `:end'.  When no statement is
+found, nil is returned.  REGISTRY defaults to
+`exec-sql-parser-registry'."
+  (let* ((registry (or registry exec-sql-parser-registry))
+         (result nil))
+    (save-excursion
+      (let ((start (point)))
+        (while (and start (not result))
+          (let ((candidate nil))
+            (dolist (entry registry)
+              (let* ((pattern (plist-get (cdr entry) :pattern))
+                     (pattern (if (string-prefix-p "^" pattern)
+                                  (concat "^\\s-*" (substring pattern 1))
+                                pattern)))
+                (goto-char start)
+                (when (re-search-backward pattern nil t)
+                  (let ((pos (match-beginning 0)))
+                    (goto-char pos)
+                    (skip-chars-forward " \t")
+                    (setq pos (point))
+                    (when (or (null candidate) (> pos (car candidate)))
+                      (setq candidate (cons pos entry)))))))
+            (if (null candidate)
+                (setq start nil)
+              (let ((pos (car candidate)))
+                (if (and exec-sql-parser-ignore-comments
+                         (nth 4 (syntax-ppss pos)))
+                    (setq start (1- pos))
+                  (goto-char pos)
+                  (setq result (list :pos pos :entry (cdr candidate))))))))))
+    (when result
+      (let* ((entry (plist-get result :entry))
+             (start (plist-get result :pos))
+             (type (car entry))
+             end)
+        (save-excursion
+          (goto-char start)
+          (if (plist-get (cdr entry) :end-pattern)
+              (let ((end-re (plist-get (cdr entry) :end-pattern)))
+                (if (re-search-forward end-re nil t)
+                    (let ((match-start (match-beginning 0))
+                          (match-end (match-end 0)))
+                      (goto-char match-end)
+                      (if (search-backward ";" match-start t)
+                          (setq end (1+ (point)))
+                        (setq end match-end)))
+                  (setq end (point-max))))
+            (when (re-search-forward ";" nil t)
+              (setq end (point))))
+        (list :type type
+              :offset (- start (point-min))
+              :length (- end start)
+              :start (cons (line-number-at-pos start)
+                           (save-excursion
+                             (goto-char start)
+                             (current-column)))
+              :end (cons (line-number-at-pos (1- end))
+                         (save-excursion
+                           (goto-char (1- end))
+                           (current-column)))))))
+    ))
+
+;;;###autoload
+(defun exec-sql-goto-prior (&optional registry)
+  "Move point to the prior EXEC SQL statement.
+
+REGISTRY defaults to `exec-sql-parser-registry'.  The metadata
+plist returned by `exec-sql-get-prior' is returned.  Prior to
+searching the buffer, point is moved up one line so the function
+may be called repeatedly to traverse statements backwards."
+  (interactive)
+  (when (> (point) (point-min))
+    (forward-line -1))
+  (let ((info (exec-sql-get-prior registry)))
+    (when info
+      (goto-char (+ (point-min) (plist-get info :offset))))
+    info))
 
 ;;;###autoload
 (defun exec-sql-goto-next (&optional registry)
