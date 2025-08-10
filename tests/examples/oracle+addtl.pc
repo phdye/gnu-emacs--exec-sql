@@ -1,0 +1,34 @@
+#include <stdio.h>
+
+void proc() {
+    EXEC SQL BEGIN DECLARE SECTION;
+    int v_id;
+    char v_name[20];
+    EXEC SQL END DECLARE SECTION;
+
+    EXEC SQL SELECT id, name
+         INTO :v_id, :v_name
+         FROM emp
+         WHERE id = 10;
+    EXEC SQL WHENEVER NOT FOUND CONTINUE;
+
+    EXEC SQL EXECUTE
+      BEGIN
+        :v_id := :v_id + 1;
+      END;
+    END-EXEC;
+
+    EXEC SQL INCLUDE sqlca;
+
+    EXEC SQL EXECUTE IMMEDIATE 'DELETE FROM emp WHERE id = :v_id';
+
+    /* Commented EXEC SQL COMMIT; should be ignored */
+
+    EXEC SQL COMMIT;
+
+    EXEC SQL
+      UPDATE emp
+         SET name = :v_name
+       WHERE id = :v_id
+    ;
+}

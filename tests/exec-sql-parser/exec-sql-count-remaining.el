@@ -17,4 +17,10 @@
       (goto-char start)
       (should (= 2 (exec-sql-count-remaining))))))
 
-(provide 'test-exec-sql-count-remaining)
+(ert-deftest exec-sql-count-remaining-oracle+addtl ()
+  (with-temp-buffer
+    (insert-file-contents (expand-file-name "oracle+addtl.pc" exec-sql-test-examples-dir))
+    (goto-char (point-min))
+    (should (= 6 (exec-sql-count-remaining)))))
+
+(provide 'exec-sql-count-remaining-test)

@@ -13,4 +13,16 @@
               (should (string= pattern "^EXEC SQL CUSTOM\\b.*;")))))
       (delete-directory dir t))))
 
-(provide 'test-exec-sql-load-registry)
+(ert-deftest exec-sql-parser-load-registry-removal-and-root ()
+  (let* ((parent (make-temp-file "exec-sql-registry-parent" t))
+         (child (expand-file-name "child" parent)))
+    (make-directory child)
+    (unwind-protect
+        (progn
+          (with-temp-file (expand-file-name ".exec-sql-parser" parent)
+            (insert "{\n  \"STATEMENT-Single-Line [1]\": null,\n  \"root\": true\n}"))
+          (let ((registry (exec-sql-parser-load-registry child t)))
+            (should (null (assoc "STATEMENT-Single-Line [1]" registry)))))
+      (delete-directory parent t))))
+
+(provide 'exec-sql-parser-load-registry-test)
