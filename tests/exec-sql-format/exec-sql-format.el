@@ -1,0 +1,41 @@
+(require 'ert)
+(require 'cl-lib)
+(require 'exec-sql-format)
+
+(defconst exec-sql-test-examples-dir
+  (expand-file-name "../examples" (file-name-directory load-file-name)))
+
+(ert-deftest exec-sql-format-formats-region ()
+  (with-temp-buffer
+    (insert-file-contents (expand-file-name "oracle+addtl.pc" exec-sql-test-examples-dir))
+    (search-forward "UPDATE emp")
+    (let ((sql (buffer-substring (match-beginning 0)
+                                 (progn (search-forward ";") (match-end 0)))))
+      (erase-buffer)
+      (insert sql)
+      (goto-char (point-min))
+      (cl-letf* ((formatted nil)
+                 ((symbol-function 'use-region-p) (lambda () t))
+                 ((symbol-function 'shell-command-on-region)
+                  (lambda (s e command output-buffer replace error-buffer display)
+                    (setq formatted t)
+                    (let ((text (buffer-substring (min s e) (max s e))))
+                      (with-current-buffer (get-buffer-create output-buffer)
+                        (erase-buffer)
+                        (insert (upcase text)))))))
+        (exec-sql-format (point-min) (point-max))
+        (goto-char (point-min))
+        (should formatted)
+        (should (looking-at "UPDATE EMP"))))))
+
+(ert-deftest exec-sql-format-no-region ()
+  (with-temp-buffer
+    (insert "select * from dual;")
+    (let (msg)
+      (cl-letf (((symbol-function 'message)
+                 (lambda (fmt &rest args)
+                   (setq msg (apply #'format fmt args)))))
+        (exec-sql-format (point-min) (point-max)))
+      (should (equal msg "No region selected.")))))
+
+(provide 'exec-sql-format-test)

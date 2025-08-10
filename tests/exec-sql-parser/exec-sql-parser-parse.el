@@ -1,0 +1,22 @@
+(require 'ert)
+(require 'exec-sql-parser)
+
+(ert-deftest exec-sql-parser-parse-basic-single-line ()
+  (let* ((content "EXEC SQL SELECT * FROM dual;\nC line")
+         (result (exec-sql-parser-parse content))
+         (output (car result))
+         (captured (cadr result)))
+    (should (equal output (list (format "%s:1:" exec-sql-parser--marker-prefix)
+                                "C line")))
+    (should (equal captured '(("EXEC SQL SELECT * FROM dual;"))))))
+
+(ert-deftest exec-sql-parser-parse-ignore-line-comments ()
+  (let* ((content "// EXEC SQL SELECT * FROM dual;\nEXEC SQL COMMIT;")
+         (result (exec-sql-parser-parse content))
+         (output (car result))
+         (captured (cadr result)))
+    (should (= (length captured) 1))
+    (should (string-match-p "COMMIT" (caar captured)))
+    (should (= (length output) 2))))
+
+(provide 'exec-sql-parser-parse-test)
