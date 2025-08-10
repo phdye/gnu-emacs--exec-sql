@@ -1,5 +1,12 @@
 ;;;
 
+(add-to-list 'auto-mode-alist '("\\.pc\\'"  . c-mode))
+(add-to-list 'auto-mode-alist '("\\.pcc\\'" . c-mode))
+(add-to-list 'auto-mode-alist '("\\.ec\\'"  . c-mode))
+(add-to-list 'auto-mode-alist '("\\.sqc\\'" . c-mode))
+
+;;;
+
 (require 'exec-sql-parser)
 
 (add-hook 'c-mode-hook
