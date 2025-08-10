@@ -28,6 +28,23 @@
         (should formatted)
         (should (looking-at "UPDATE EMP"))))))
 
+(ert-deftest exec-sql-format-select-region ()
+  (with-temp-buffer
+    (insert-file-contents (expand-file-name "oracle+addtl.pc" exec-sql-test-examples-dir))
+    (goto-char (point-min))
+    (forward-line 12) ; mark at start of line 13
+    (push-mark (point) t t)
+    (goto-char (point-min))
+    (forward-line 8) ; point at start of line 9
+    (cl-letf (((symbol-function 'shell-command-on-region)
+               (lambda (s e command output-buffer replace error-buffer display)
+                 (with-current-buffer (get-buffer-create output-buffer)
+                   (erase-buffer)
+                   (insert (upcase (buffer-substring s e)))))))
+      (exec-sql-format (region-beginning) (region-end))
+      (goto-char (region-beginning))
+      (should (looking-at "    EXEC SQL SELECT ID, NAME")))))
+
 (ert-deftest exec-sql-format-no-region ()
   (with-temp-buffer
     (insert "select * from dual;")
