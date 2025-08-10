@@ -41,7 +41,7 @@
     ;; EXEC SQL EXECUTE forms ordered to avoid masking
     ("EXECUTE-Block"
       :pattern "^EXEC SQL EXECUTE\\s-*$"
-      :end-pattern "^END-EXEC;\\s-*$"
+      :end-pattern "^\\s-*END-EXEC;\\s-*$"
       :action #'identity)
     ("EXECUTE-Immediate-Multi"
       :pattern "^EXEC SQL EXECUTE IMMEDIATE\\b[^;]*$"
