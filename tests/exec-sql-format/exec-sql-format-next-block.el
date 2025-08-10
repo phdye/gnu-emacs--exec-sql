@@ -9,7 +9,8 @@
   (with-temp-buffer
     (let (called)
       (cl-letf (((symbol-function 'exec-sql-goto-next)
-                 (lambda (&optional _) (setq called t) nil)))
+                 (lambda (&optional _) (setq called t) nil))
+                ((symbol-function 'message) (lambda (&rest _) nil)))
         (exec-sql-format-next-block)
         (should called)))))
 
@@ -18,7 +19,8 @@
     (insert "EXEC SQL include foo;\n")
     (goto-char (point-min))
     (cl-letf (((symbol-function 'shell-command-on-region)
-               (lambda (&rest _) (error "should not be called"))))
+               (lambda (&rest _) (error "should not be called")))
+              ((symbol-function 'message) (lambda (&rest _) nil)))
       (exec-sql-format-next-block)
       (should (string= (buffer-string) "EXEC SQL include foo;\n")))))
 
@@ -40,7 +42,8 @@
                  (let ((text (buffer-substring (min start end) (max start end))))
                    (with-current-buffer (get-buffer-create output-buffer)
                      (erase-buffer)
-                     (insert (upcase text)))))))
+                     (insert (upcase text))))))
+              ((symbol-function 'message) (lambda (&rest _) nil)))
       (dotimes (_ 3)
         (exec-sql-format-next-block))
       (goto-char (point-min))
