@@ -1,3 +1,5 @@
+;;; exec-sql-format --- Format the selected embedded SQL blocks in Pro*C files
+;;;
 ;;; Usage
 ;;;
 ;;; - Select an embedded SQL region inside EXEC SQL ...;.
@@ -43,8 +45,8 @@
       (message "No region selected."))))
 
 
-;;; exec-sql-format-next-block.el --- Auto-format embedded SQL in Pro*C files -*- lexical-binding: t -*-
-
+;;; exec-sql-format-next-block --- Auto-format embedded SQL in Pro*C files
+;;;
 ;;; Commentary:
 ;;
 ;; This function finds and formats the next embedded SQL block in a Pro*C file.
@@ -78,7 +80,6 @@
 ;; - Formatting replaces SQL region only—wrappers are preserved.
 
 ;;; Code:
-
 
 (defun exec-sql-format-next-block ()
   "Find and format the next EXEC SQL block using sqlformat.
@@ -128,8 +129,8 @@ formatted."
             (message "Formatted embedded SQL.")))))))
 
 
-;;; exec-sql-format-all-blocks.el --- Format all embedded SQL blocks in Pro*C files -*- lexical-binding: t -*-
-
+;;; exec-sql-format-all-blocks --- Format all embedded SQL blocks in Pro*C files
+;;;
 ;;; Commentary:
 ;;
 ;; This function formats **all** embedded SQL blocks in a Pro*C `.pc` source file.
