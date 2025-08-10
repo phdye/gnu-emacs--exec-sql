@@ -257,7 +257,7 @@ found, nil is returned.  REGISTRY defaults to
                 (when (re-search-forward pattern nil t)
                   (let ((pos (match-beginning 0)))
                     (goto-char pos)
-                    (skip-chars-forward " \t")
+                    (skip-chars-forward " \t\n\r")
                     (setq pos (point))
                     (when (or (null candidate) (< pos (car candidate)))
                       (setq candidate (cons pos entry)))))))
@@ -390,12 +390,21 @@ may be called repeatedly to traverse statements backwards."
 
 REGISTRY defaults to `exec-sql-parser-registry'.  The metadata
 plist returned by `exec-sql-get-next' is returned.  Prior to
-searching the buffer, point is advanced by one character so the
-function may be called repeatedly to traverse statements."
+searching the buffer, point is advanced by one line so the
+function may be called repeatedly to traverse statements.  Entries
+in the registry marked with `:error' are skipped."
   (interactive)
-  (when (< (point) (point-max))
-    (forward-line 1))
-  (let ((info (exec-sql-get-next registry)))
+  (let ((registry (or registry exec-sql-parser-registry))
+        info entry)
+    (when (< (point) (point-max))
+      (forward-line 1))
+    (setq info (exec-sql-get-next registry))
+    (while (and info
+                (setq entry (assoc (plist-get info :type) registry))
+                (plist-get (cdr entry) :error))
+      (goto-char (+ (point-min) (plist-get info :offset)))
+      (forward-line 1)
+      (setq info (exec-sql-get-next registry)))
     (when info
       (goto-char (+ (point-min) (plist-get info :offset))))
     info))

@@ -6,7 +6,7 @@
 
 (ert-deftest exec-sql-get-next-traverses-examples ()
   (dolist (spec '(("complex.pc" . (4 5 6 10 11 16 18 20))
-                  ("oracle+addtl.pc" . (4 7 8 13 14 20 22 26 28))))
+                  ("oracle+addtl.pc" . (4 7 9 13 15 21 23 27 29))))
     (with-temp-buffer
       (insert-file-contents (expand-file-name (car spec) exec-sql-test-examples-dir))
       (goto-char (point-min))
