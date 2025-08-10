@@ -431,6 +431,34 @@ REGISTRY defaults to `exec-sql-parser-registry'."
       (message "%d" count))
     count))
 
+;;;###autoload
+(defun exec-sql-extract ()
+  "Create a new buffer with all EXEC SQL statements from the current buffer.
+
+The statements are separated by a line of equal signs prefixed by
+\"//\".  The resulting buffer is displayed and also returned."
+  (interactive)
+  (let ((dest (generate-new-buffer "*exec-sql-extract*"))
+        (sep (concat "//" (make-string 72 ?=) "\n"))
+        info start end block (first t))
+    (with-current-buffer dest
+      (erase-buffer))
+    (save-excursion
+      (goto-char (point-min))
+      (while (setq info (exec-sql-goto-next))
+        (setq start (+ (point-min) (plist-get info :offset)))
+        (setq end (+ start (plist-get info :length)))
+        (setq block (buffer-substring-no-properties start end))
+        (with-current-buffer dest
+          (unless first (insert sep))
+          (insert block "\n"))
+        (setq first nil)
+        (goto-char end)))
+    (with-current-buffer dest
+      (goto-char (point-min)))
+    (pop-to-buffer dest)
+    dest))
+
 (provide 'exec-sql-parser)
 
 ;;; exec-sql-parser.el ends here
