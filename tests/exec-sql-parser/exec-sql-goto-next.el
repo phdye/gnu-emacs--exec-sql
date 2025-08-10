@@ -22,8 +22,6 @@
       (while (exec-sql-goto-next)
         (push (line-number-at-pos (point)) lines))
       (setq lines (nreverse lines))
-      (should (equal (car lines) 4))
-      (should (equal (car (last lines)) 29))
-      (should-not (memq 25 lines)))))
+      (should (equal lines '(4 7 8 9 13 14 15 18 19 20 21 22 23 26 27 28 29))))))
 
 (provide 'exec-sql-goto-next-test)
