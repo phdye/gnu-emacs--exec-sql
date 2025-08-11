@@ -5,11 +5,11 @@ import time
 
 FILE_PATH = os.path.join('tests', 'examples', 'oracle+addtl.pc')
 EXPECTED_FRAGMENT = (
-    'SELECT id,\n'
-    '       name INTO :v_id,\n'
-    '                 :v_name\n'
-    'FROM emp\n'
-    'WHERE id = 10;'
+    '    SELECT id,\n'
+    '           name INTO :v_id,\n'
+    '                     :v_name\n'
+    '    FROM emp\n'
+    '    WHERE id = 10;'
 )
 
 def main():

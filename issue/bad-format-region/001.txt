@@ -1,0 +1,4 @@
+exec-sql-format should format SQL even if called with reversed region boundaries.
+Currently, providing start greater than end leads to incorrect behavior, and
+formatted output loses leading indentation while inserting an extra blank line
+beyond the selected region.
