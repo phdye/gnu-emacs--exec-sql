@@ -29,18 +29,38 @@
   (interactive "r")
   (let ((formatted-sql-buffer "*Formatted SQL*"))
     (if (use-region-p)
-        (progn
+        (let* ((s (min start end))
+               (e (max start end))
+               (indent (save-excursion
+                         (goto-char s)
+                         (current-indentation)))
+               (indent-str (make-string indent ?\s))
+               (end-with-newline (and (> e s)
+                                      (save-excursion
+                                        (goto-char e)
+                                        (eq (char-before) ?\n)))))
           (shell-command-on-region
-           start end
+           s e
            "sqlformat -r -k upper -s -"  ; change options here if needed
            formatted-sql-buffer
            nil ; do not replace region automatically
            "*SQL Format Errors*" t)
-          (let ((formatted (with-current-buffer formatted-sql-buffer
-                              (buffer-string))))
-            (delete-region start end)
-            (goto-char start)
-            (insert formatted))
+          (let* ((formatted (with-current-buffer formatted-sql-buffer
+                               (buffer-string)))
+                 (trimmed (string-trim-right formatted))
+                 (lines (split-string trimmed "\n"))
+                 (first-line (concat indent-str
+                                      (string-trim-left (car lines))))
+                 (rest-lines (mapcar (lambda (line)
+                                       (concat indent-str line))
+                                     (cdr lines)))
+                 (indented (string-join (cons first-line rest-lines)
+                                        "\n")))
+            (delete-region s e)
+            (goto-char s)
+            (insert indented)
+            (when end-with-newline
+              (insert "\n")))
           (kill-buffer formatted-sql-buffer))
       (message "No region selected."))))
 
