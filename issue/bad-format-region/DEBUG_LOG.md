@@ -164,3 +164,39 @@ external format test passed
 
 **Lessons Learned:**  
 -  
+
+### Session 2025-08-11
+**Objective:**
+Resolve extra newline inserted after formatting SQL regions.
+
+**Steps Taken:**
+1. Reproduced formatting behavior and examined file output.
+2. Modified `exec-sql-format` to avoid adding a newline when one already follows the formatted region.
+3. Ran the test suite to confirm no extra blank lines are inserted.
+
+**Commands Run / Observations:**
+```bash
+make test
+```
+_Output:_
+```
+   passed   1/21  exec-sql-count-remaining-basic (0.001269 sec)
+   ...
+   passed  10/10  exec-sql-format-select-region (0.000147 sec)
+
+external format test passed
+```
+
+**Reasoning / Analysis:**
+- Checking the character after the insertion point prevents duplicate newlines when the original buffer already contains one.
+
+**Partial Findings:**
+- Formatting no longer introduces a blank line before the following C statement.
+
+**Remaining Issues:**
+- None.
+
+**Next Steps for Future Session:**
+- Close the issue after confirming behavior in additional real-world files.
+
+---

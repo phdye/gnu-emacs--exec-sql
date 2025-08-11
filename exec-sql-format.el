@@ -59,7 +59,8 @@
             (delete-region s e)
             (goto-char s)
             (insert indented)
-            (when end-with-newline
+            (when (and end-with-newline
+                       (not (eq (char-after) ?\n)))
               (insert "\n")))
           (kill-buffer formatted-sql-buffer))
       (message "No region selected."))))
