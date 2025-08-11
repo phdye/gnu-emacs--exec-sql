@@ -111,6 +111,42 @@ external format test passed
 
 ---
 
+### Session 2025-08-11
+**Objective:** Ensure formatted SQL retains surrounding indentation and preserves sqlformat's internal spacing.
+
+**Steps Taken:**
+1. Updated `exec-sql-format` to trim leading spaces on the first formatted line and reapply the original indentation separately.
+2. Adjusted `exec-sql-format-select-region` test to mimic sqlformat's indentation and verify insertion respects both outer and inner indent levels.
+3. Ran the full test suite.
+
+**Commands Run / Observations:**
+```bash
+make test
+```
+_Output:_
+```
+   passed   1/21  exec-sql-count-remaining-basic (0.001981 sec)
+   ...
+   passed  10/10  exec-sql-format-select-region (0.000311 sec)
+
+external format test passed
+```
+
+**Reasoning / Analysis:**
+- The previous implementation prefixed the same indentation to every line, causing the first line to inherit any leading spaces from sqlformat.
+- Separating the first line prevents unintended offsets while still honoring sqlformat's indentation on subsequent lines.
+
+**Partial Findings:**
+- All tests confirm the adjusted indentation behavior.
+
+**Remaining Issues:**
+- None.
+
+**Next Steps for Future Session:**
+- Finalize issue and update documentation if necessary.
+
+---
+
 ## Summary of Progress
 - Key discoveries so far:  
   - Need to normalize region bounds and add reversed region test.  
