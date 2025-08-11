@@ -29,17 +29,18 @@
   (interactive "r")
   (let ((formatted-sql-buffer "*Formatted SQL*"))
     (if (use-region-p)
-        (progn
+        (let ((s (min start end))
+              (e (max start end)))
           (shell-command-on-region
-           start end
+           s e
            "sqlformat -r -k upper -s -"  ; change options here if needed
            formatted-sql-buffer
            nil ; do not replace region automatically
            "*SQL Format Errors*" t)
           (let ((formatted (with-current-buffer formatted-sql-buffer
                               (buffer-string))))
-            (delete-region start end)
-            (goto-char start)
+            (delete-region s e)
+            (goto-char s)
             (insert formatted))
           (kill-buffer formatted-sql-buffer))
       (message "No region selected."))))

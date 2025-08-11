@@ -26,7 +26,21 @@
         (exec-sql-format (point-min) (point-max))
         (goto-char (point-min))
         (should formatted)
-        (should (looking-at "UPDATE EMP"))))))
+  (should (looking-at "UPDATE EMP"))))))
+
+(ert-deftest exec-sql-format-reversed-region ()
+  (with-temp-buffer
+    (insert "select * from dual;")
+    (cl-letf* (((symbol-function 'use-region-p) (lambda () t))
+               ((symbol-function 'shell-command-on-region)
+                (lambda (s e command output-buffer replace error-buffer display)
+                  (let ((text (buffer-substring (min s e) (max s e))))
+                    (with-current-buffer (get-buffer-create output-buffer)
+                      (erase-buffer)
+                      (insert (upcase text)))))))
+      (exec-sql-format (point-max) (point-min))
+      (goto-char (point-min))
+      (should (looking-at "SELECT \\* FROM DUAL;")))))
 
 (ert-deftest exec-sql-format-select-region ()
   (with-temp-buffer
